@@ -3,16 +3,38 @@
   "version": "1.0.0",
 
   "tasks": {
-    "start": "deno run --allow-net --allow-env --allow-read --unstable-kv src/main.ts",
-    "dev":   "deno run --allow-net --allow-env --allow-read --unstable-kv --watch src/main.ts",
-    "check": "deno check src/main.ts"
+    "dev": "deno run --watch --allow-env --allow-net --allow-read --allow-write --unstable-kv src/main.ts",
+    "start": "deno run --allow-env --allow-net --allow-read --allow-write --unstable-kv src/main.ts",
+    "check": "deno check src/main.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "test": "deno test --allow-env --allow-net --allow-read --allow-write --unstable-kv",
+    "coverage": "deno coverage coverage",
+    "webhook": "deno run --allow-env --allow-net src/register-webhook.ts"
   },
 
   "imports": {
     "grammy": "https://deno.land/x/grammy@v1.36.1/mod.ts"
   },
 
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": false,
+    "semiColons": true
+  },
+
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    }
+  },
+
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
   }
 }
