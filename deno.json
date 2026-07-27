@@ -3,14 +3,14 @@
   "version": "1.0.0",
 
   "tasks": {
-    "dev": "deno run --watch --allow-env --allow-net --allow-read --allow-write --unstable-kv src/main.ts",
-    "start": "deno run --allow-env --allow-net --allow-read --allow-write --unstable-kv src/main.ts",
-    "check": "deno check src/main.ts",
+    "dev": "deno run --watch --allow-env --allow-net --allow-read --allow-write --unstable-kv main.ts",
+    "start": "deno run --allow-env --allow-net --allow-read --allow-write --unstable-kv main.ts",
+    "check": "deno check main.ts",
     "fmt": "deno fmt",
     "lint": "deno lint",
     "test": "deno test --allow-env --allow-net --allow-read --allow-write --unstable-kv",
     "coverage": "deno coverage coverage",
-    "webhook": "deno run --allow-env --allow-net src/register-webhook.ts"
+    "webhook": "deno run --allow-env --allow-net register-webhook.ts"
   },
 
   "imports": {
@@ -36,5 +36,6 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
+
   }
 }
