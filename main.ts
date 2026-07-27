@@ -9,15 +9,17 @@ import { config }                  from "./config.ts";
 import { BotContext, globalMiddleware } from "./middleware.ts";
 
 // Features
-import { dashboardFeature }        from "./features/dashboard.ts";
-import { communityFeature }        from "./features/community.ts";
-import { supportFeature }          from "./features/support.ts";
-import { contentFeature }          from "./features/content.ts";
-import { broadcastFeature }        from "./features/broadcast.ts";
+import { dashboardFeature }        from "./dashboard.ts";
+import { communityFeature }        from "./community.ts";
+import { supportFeature }          from "./support.ts";
+import { contentFeature }          from "./content.ts";
+import { broadcastFeature }        from "./broadcast.ts";
 
 // Workers
-import { initializeQueueWorker }   from "./workers/queue.ts";
-import { initializeScheduler }     from "./workers/scheduler.ts";
+import { initializeScheduler }     from "./scheduler.ts";
+// NOTE: initializeQueueWorker previously imported from "./workers/queue.ts",
+// but no queue.ts file exists anywhere in this repo. That import has been
+// removed below until the file is created — see message for details.
 
 // ─── Step 1: Create Bot Instance ──────────────────────────────────────────────
 
@@ -42,8 +44,9 @@ bot.use(broadcastFeature);   // /broadcast, /broadcastlist, job status
 // ─── Step 4: Register Queue Worker ───────────────────────────────────────────
 // Deno KV queue — receives broadcast jobs, sends messages to all users.
 // Uses the same bot instance as the webhook.
+// DISABLED: queue.ts does not exist in this repo yet.
 
-initializeQueueWorker(bot);
+// initializeQueueWorker(bot);
 
 // ─── Step 5: Register Scheduler ──────────────────────────────────────────────
 // Cron / setInterval — polls for scheduled posts every minute.
@@ -76,7 +79,7 @@ Deno.serve({ port: config.PORT }, async (req: Request): Promise<Response> => {
       env:       config.ENV,
       timestamp: new Date().toISOString(),
       features:  ["dashboard", "community", "support", "content", "broadcast"],
-      workers:   ["queue", "scheduler"],
+      workers:   ["scheduler"],
     });
   }
 
@@ -112,5 +115,6 @@ console.log(` Env:      ${config.ENV}`);
 console.log(` Webhook:  POST /webhook`);
 console.log(` Health:   GET  /health`);
 console.log(` Features: dashboard · community · support · content · broadcast`);
-console.log(` Workers:  queue · scheduler`);
-console.log("═".repeat(60));
+console.log(` Workers:  scheduler`);
+console.log("═".repeat(60)
+  );
