@@ -1,81 +1,64 @@
-import { Composer, Context } from "https://deno.land/x/grammy@v1.36.1/mod.ts";
-import { config }                        from "./config.ts";
-import { appendAudit }                   from "./services/audit.ts";
-import { trackActiveUser, trackCommand } from "./services/analytics.ts";
-import { upsertUser }                    from "./services/storage.ts";
+// ─── middleware.ts ─────────────────────────────────────────────────────────
+// Extends grammY's Context with runtime fields and wires the global
+// middleware pipeline: Authentication → Authorization → Context Builder
+// → Audit → Analytics.
 
-// ─── Extended Context ─────────────────────────────────────────────────────────
+import { Composer, Context } from "https://deno.land/x/grammy@v1.36.1/mod.ts";
+import { config } from "./config.ts";
+import { logAudit } from "./audit.ts";
+import { trackActiveUser, trackCommand } from "./analytics.ts";
+import { upsertUser } from "./storage.ts";
 
 export interface BotContext extends Context {
-  isOwner:      boolean;
+  isOwner: boolean;
   isRegistered: boolean;
-  startedAt:    number;
+  startedAt: number;
 }
-
-// ─── Global Middleware Stack ──────────────────────────────────────────────────
-// Execution order: Authentication → Authorization → Context Builder → Audit → Analytics
 
 export const globalMiddleware = new Composer<BotContext>();
 
-// 1. Authentication — identify the caller
+// ── Authentication + Authorization + Context Builder ───────────────────────
 globalMiddleware.use(async (ctx, next) => {
   ctx.startedAt = Date.now();
-
-  // Reject updates with no sender in private chats (edge cases: channel posts, etc.)
-  if (ctx.chat?.type === "private" && !ctx.from) {
-    return; // drop silently
-  }
-
+  ctx.isRegistered = ctx.from !== undefined;
+  ctx.isOwner = ctx.from?.id === config.OWNER_ID;
   await next();
 });
 
-// 2. Authorization — set permission flags used by every feature
-globalMiddleware.use(async (ctx, next) => {
-  ctx.isOwner      = ctx.from?.id === config.OWNER_ID;
-  ctx.isRegistered = !!ctx.from;
-  await next();
-});
-
-// 3. Context Builder — hydrate user record into persistent storage
+// ── Registration (upsert user record) ──────────────────────────────────────
 globalMiddleware.use(async (ctx, next) => {
   if (ctx.from) {
-    await upsertUser(ctx.from);
+    await upsertUser({
+      id: ctx.from.id,
+      username: ctx.from.username,
+      firstName: ctx.from.first_name,
+      lastSeen: Date.now(),
+    });
   }
   await next();
 });
 
-// 4. Audit — record every update
+// ── Audit ────────────────────────────────────────────────────────────────
 globalMiddleware.use(async (ctx, next) => {
-  const updateType = Object.keys(ctx.update).find((k) => k !== "update_id") ?? "unknown";
-  const command    = ctx.message?.text?.split(" ")[0] ?? undefined;
-
-  await appendAudit({
-    updateId:   ctx.update.update_id,
-    updateType,
-    userId:     ctx.from?.id,
-    chatId:     ctx.chat?.id,
-    action:     command ?? updateType,
+  await logAudit({
+    updateId: ctx.update.update_id,
+    userId: ctx.from?.id,
+    type: ctx.updateType,
   });
-
-  console.log(
-    `[Audit] #${ctx.update.update_id} ${updateType}` +
-    (ctx.from ? ` user=${ctx.from.id}` : "") +
-    (command  ? ` cmd=${command}`       : ""),
-  );
-
   await next();
 });
 
-// 5. Analytics — track active users and command usage
+// ── Analytics ────────────────────────────────────────────────────────────
 globalMiddleware.use(async (ctx, next) => {
   if (ctx.from) {
     await trackActiveUser(ctx.from.id);
   }
-
-  const command = ctx.message?.text?.match(/^\/(\w+)/)?.[1];
-  if (command) {
+  const text = ctx.message?.text;
+  if (text?.startsWith("/")) {
+    const command = text.split(" ")[0].slice(1).split("@")[0];
     await trackCommand(command);
   }
-
-  await next();
+  await next(
+    
+  );
 });
